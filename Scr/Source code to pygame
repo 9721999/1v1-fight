@@ -1,1 +1,126 @@
+import pygame
+import random
+import math
+import os
+
+# Initialize Pygame
+pygame.init()
+
+# Set up the screen
+screen_width = 900
+screen_height = 600
+screen = pygame.display.set_mode((screen_width, screen_height))
+pygame.display.set_caption("Boxing Game")
+
+# Define Boxer class
+class Boxer:
+    def __init__(self, name, image_path1, image_path2, x, y):
+        self.name = name
+        self.image1 = pygame.image.load(image_path1)
+        self.image2 = pygame.image.load(image_path2)
+        self.rect = self.image1.get_rect()
+        self.rect.center = (x, y)
+        self.health = 100
+        self.speed = 7
+        self.punch_damage = 10
+        self.punch_range = 100  # Minimum punching distance
+        self.current_image = self.image1  # Initially set to first image
+
+    def punch(self, opponent):
+        distance = math.sqrt((self.rect.centerx - opponent.rect.centerx)**2 +
+                             (self.rect.centery - opponent.rect.centery)**2)
+        if distance <= self.punch_range:
+            opponent.health -= self.punch_damage
+
+    def move(self, dx, dy, opponent_rect):
+        # Attempt to move
+        new_x = self.rect.x + dx
+        new_y = self.rect.y + dy
+
+        # Check if new position collides with opponent
+        if self.rect.colliderect(opponent_rect):
+            # Adjust movement to prevent overlapping
+            if dx > 0:
+                new_x = min(new_x, opponent_rect.left - self.rect.width)
+            elif dx < 0:
+                new_x = max(new_x, opponent_rect.right)
+            if dy > 0:
+                new_y = min(new_y, opponent_rect.top - self.rect.height)
+            elif dy < 0:
+                new_y = max(new_y, opponent_rect.bottom)
+
+        # Update position
+        if 0 <= new_x <= screen_width - self.rect.width:
+            self.rect.x = new_x
+        if 0 <= new_y <= screen_height - self.rect.height:
+            self.rect.y = new_y
+
+    def draw(self):
+        screen.blit(self.current_image, self.rect)
+
+    def draw_punch(self):
+        screen.blit(self.image2, self.rect)
+
+# Create boxers
+# Player 1 images paths: IMAGE1, IMAGE2
+# Player 2 images paths: IMAGE3, IMAGE4
+
+current_path = os.path.dirname(__file__)
+boxer1 = Boxer("Player 1", os.path.join(current_path, "/Users/9721999/Downloads/boxer2.png"), os.path.join(current_path, "/Users/9721999/Downloads/boxer1 .png"), 200, screen_height // 2)
+boxer2 = Boxer("Player 2", os.path.join(current_path, "/Users/9721999/Downloads/New Piskel (2).png"), os.path.join(current_path, "/Users/9721999/Downloads/New Piskel (3).png"), screen_width - 250, screen_height // 2)
+
+# Main game loop
+running = True
+clock = pygame.time.Clock()
+while running:
+    screen.fill((255, 255, 255))
+
+    # Event handling
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+
+    # Player 1 controls
+    keys = pygame.key.get_pressed()
+    if keys[pygame.K_w]:
+        boxer1.move(0, -boxer1.speed, boxer2.rect)
+    if keys[pygame.K_a]:
+        boxer1.move(-boxer1.speed, 0, boxer2.rect)
+    if keys[pygame.K_d]:
+        boxer1.move(boxer1.speed, 0, boxer2.rect)
+    if keys[pygame.K_s]:
+        boxer1.move(0, boxer1.speed, boxer2.rect)
+
+    # Player 2 controls
+    if keys[pygame.K_UP]:
+        boxer2.move(0, -boxer2.speed, boxer1.rect)
+    if keys[pygame.K_LEFT]:
+        boxer2.move(-boxer2.speed, 0, boxer1.rect)
+    if keys[pygame.K_RIGHT]:
+        boxer2.move(boxer2.speed, 0, boxer1.rect)
+    if keys[pygame.K_DOWN]:
+        boxer2.move(0, boxer2.speed, boxer1.rect)
+
+    # Check for punching
+    if keys[pygame.K_SPACE]:
+        boxer1.punch(boxer2)
+    if keys[pygame.K_RETURN]:
+        boxer2.punch(boxer1)
+
+    # Draw boxers
+    boxer1.draw()
+    boxer2.draw()
+
+    # Display health and check for game over
+    font = pygame.font.Font(None, 36)
+    text1 = font.render(f"{boxer1.name} Health: {boxer1.health}", True, (255, 0, 0))
+    text2 = font.render(f"{boxer2.name} Health: {boxer2.health}", True, (0, 0, 255))
+    screen.blit(text1, (10, 10))
+    screen.blit(text2, (screen_width - 220, 10))
+
+    pygame.display.flip()
+    clock.tick(30)
+
+# Quit Pygame
+pygame.quit()
 
