@@ -22,10 +22,12 @@ class Boxer:
         self.speed = 7
         self.punch_damage = 10
         self.is_punching = False
+        self.cooldown = 0
 
     def punch(self, opponent):
-        if self.rect.colliderect(opponent.rect):
+        if self.rect.colliderect(opponent.rect) and self.cooldown == 0:
             opponent.health -= self.punch_damage
+            self.cooldown = 30  # Cooldown of 30 frames (1 second at 30 FPS)
 
     def move(self, dx, dy):
         self.rect.x += dx
@@ -46,7 +48,7 @@ class ForceField:
         self.surface = pygame.Surface((self.width, self.height))
         self.surface.fill(self.color)
         self.rect = self.surface.get_rect()
-        self.rect.topleft = (-100, 0)
+        self.update_position(screen_width // 2)  # Start position at the center of the screen
 
     def update_position(self, x_position):
         self.rect.centerx = x_position
@@ -56,7 +58,7 @@ class ForceField:
 
 # Create boxers
 current_path = os.path.dirname(__file__)
-boxer1_images = [os.path.join(current_path, "/Users/9721999/Downloads/boxer2(1).png"), os.path.join(current_path, "/Users/9721999/Downloads/boxer2 .png")]
+boxer1_images = [os.path.join(current_path, "/Users/9721999/Downloads/boxer1(1).png"), os.path.join(current_path, "/Users/9721999/Downloads/boxer1 .png")]
 boxer2_images = [os.path.join(current_path, "/Users/9721999/Downloads/New Piskel (2).png"), os.path.join(current_path, "/Users/9721999/Downloads/New Piskel (3).png")]
 
 boxer1 = Boxer("Player 1", boxer1_images, 200, screen_height // 2)
@@ -79,13 +81,17 @@ while running:
     # Player 1 controls
     keys = pygame.key.get_pressed()
     if keys[pygame.K_w]:
-        boxer1.move(0, -boxer1.speed)
+        if boxer1.rect.top > 0:  # Check if player is not at the top edge
+            boxer1.move(0, -boxer1.speed)
     if keys[pygame.K_a]:
-        boxer1.move(-boxer1.speed, 0)
+        if boxer1.rect.left > force_field.rect.right:  # Check if player is not crossing the force field
+            boxer1.move(-boxer1.speed, 0)
     if keys[pygame.K_d]:
-        boxer1.move(boxer1.speed, 0)
+        if boxer1.rect.right < force_field.rect.left:  # Check if player is not crossing the force field
+            boxer1.move(boxer1.speed, 0)
     if keys[pygame.K_s]:
-        boxer1.move(0, boxer1.speed)
+        if boxer1.rect.bottom < screen_height:  # Check if player is not at the bottom edge
+            boxer1.move(0, boxer1.speed)
     if keys[pygame.K_SPACE]:
         boxer1.is_punching = True
     else:
@@ -93,32 +99,34 @@ while running:
 
     # Player 2 controls
     if keys[pygame.K_UP]:
-        boxer2.move(0, -boxer2.speed)
+        if boxer2.rect.top > 0:  # Check if player is not at the top edge
+            boxer2.move(0, -boxer2.speed)
     if keys[pygame.K_LEFT]:
-        boxer2.move(-boxer2.speed, 0)
+        if boxer2.rect.left > force_field.rect.right:  # Check if player is not crossing the force field
+            boxer2.move(-boxer2.speed, 0)
     if keys[pygame.K_RIGHT]:
-        boxer2.move(boxer2.speed, 0)
+        if boxer2.rect.right < force_field.rect.left:  # Check if player is not crossing the force field
+            boxer2.move(boxer2.speed, 0)
     if keys[pygame.K_DOWN]:
-        boxer2.move(0, boxer2.speed)
+        if boxer2.rect.bottom < screen_height:  # Check if player is not at the bottom edge
+            boxer2.move(0, boxer2.speed)
     if keys[pygame.K_RETURN]:
         boxer2.is_punching = True
     else:
         boxer2.is_punching = False
 
     # Check for punching
-    if boxer1.is_punching:
-        boxer1.punch(boxer2)
-    if boxer2.is_punching:
-        boxer2.punch(boxer1)
+    boxer1.punch(boxer2)
+    boxer2.punch(boxer1)
 
-    # Check if players are trying to cross the force field
-    if boxer1.rect.right > force_field.rect.left:
-        boxer1.rect.right = force_field.rect.left + 60
-    if boxer2.rect.left < force_field.rect.right:
-        boxer2.rect.left = force_field.rect.right - 50
+    # Update cooldown for punching
+    if boxer1.cooldown > 0:
+        boxer1.cooldown -= 1
+    if boxer2.cooldown > 0:
+        boxer2.cooldown -= 1
 
     # Update force field position based on players' positions
-    force_field.update_position((boxer1.rect.right + boxer2.rect.left) / 2)
+    force_field.update_position((boxer1.rect.right + boxer2.rect.left) // 2)
 
     # Draw force field
     force_field.draw()
