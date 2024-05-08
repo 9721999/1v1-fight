@@ -5,7 +5,7 @@ Adrien Roy
 # Things that I want my project to have.
 Pictures created with pygame I also want a sort of force wall that would prevent the player to over lap . In this actual code I made the force wall green.
 
-![ClassDiagram](https://github.com/9721999/1v1-fight/blob/main/IMG/Boxeproject.jpg?raw=true)
+![ClassDiagram](https://github.com/9721999/1v1-fight/blob/main/IMG/Drawio.jpg?raw=true)
 
 ![Strartscreen](https://github.com/9721999/1v1-fight/blob/main/IMG/Start%20screen)
 
