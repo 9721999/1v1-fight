@@ -12,17 +12,19 @@ pygame.display.set_caption("Boxing Game")
 
 # Define Boxer class
 class Boxer:
-    def __init__(self, name, image_paths, x, y):
+    def __init__(self, name, image_paths, x, y, keys):
         self.name = name
         self.image_normal = pygame.image.load(image_paths[0])
         self.image_punch = pygame.image.load(image_paths[1])
-        self.rect = self.image_normal.get_rect()
-        self.rect.center = (x, y)
+        self.image_normal_mirror = pygame.transform.flip(self.image_normal, True, False)
+        self.image_punch_mirror = pygame.transform.flip(self.image_punch, True, False)
+        self.rect = self.image_normal.get_rect(center=(x, y))
         self.health = 100
         self.speed = 7
         self.punch_damage = 10
         self.is_punching = False
         self.cooldown = 0
+        self.keys = keys
 
     def punch(self, opponent):
         if self.rect.colliderect(opponent.rect) and self.cooldown == 0:
@@ -34,10 +36,10 @@ class Boxer:
         self.rect.y += dy
 
     def draw(self):
-        if self.is_punching:
-            screen.blit(self.image_punch, self.rect)
+        if self.rect.x < self.opponent.rect.x:
+            screen.blit(self.image_punch if self.is_punching else self.image_normal, self.rect)
         else:
-            screen.blit(self.image_normal, self.rect)
+            screen.blit(self.image_punch_mirror if self.is_punching else self.image_normal_mirror, self.rect)
 
 # Define ForceField class
 class ForceField:
@@ -47,22 +49,36 @@ class ForceField:
         self.color = (0, 255, 0)
         self.surface = pygame.Surface((self.width, self.height))
         self.surface.fill(self.color)
-        self.rect = self.surface.get_rect()
-        self.update_position(screen_width // 2)  # Start position at the center of the screen
-
-    def update_position(self, x_position):
-        self.rect.centerx = x_position
+        self.rect = self.surface.get_rect(centerx=screen_width // 2)
 
     def draw(self):
         screen.blit(self.surface, self.rect)
 
 # Create boxers
 current_path = os.path.dirname(__file__)
-boxer1_images = [os.path.join(current_path, "/Users/9721999/Downloads/boxer1(1).png"), os.path.join(current_path, "/Users/9721999/Downloads/boxer1 .png")]
-boxer2_images = [os.path.join(current_path, "/Users/9721999/Downloads/New Piskel (2).png"), os.path.join(current_path, "/Users/9721999/Downloads/New Piskel (3).png")]
+boxer1_images = [os.path.join(current_path, "/Users/9721999/Downloads/boxer2(1).png"), os.path.join(current_path, "/Users/9721999/Downloads/boxer1(2).png")]
+boxer2_images = [os.path.join(current_path, "/Users/9721999/Downloads/New Piskel (2).png"), os.path.join(current_path, "/Users/9721999/Downloads/boxer2(2).png")]
 
-boxer1 = Boxer("Player 1", boxer1_images, 200, screen_height // 2)
-boxer2 = Boxer("Player 2", boxer2_images, screen_width - 250, screen_height // 2)
+# Define keys for each player
+player1_keys = {
+    "up": pygame.K_w,
+    "left": pygame.K_a,
+    "right": pygame.K_d,
+    "down": pygame.K_s,
+    "punch": pygame.K_SPACE
+}
+
+player2_keys = {
+    "up": pygame.K_UP,
+    "left": pygame.K_LEFT,
+    "right": pygame.K_RIGHT,
+    "down": pygame.K_DOWN,
+    "punch": pygame.K_RETURN
+}
+
+# Create boxers
+boxer1 = Boxer("Player 1", boxer1_images, 200, screen_height // 2, player1_keys)
+boxer2 = Boxer("Player 2", boxer2_images, screen_width - 250, screen_height // 2, player2_keys)
 
 # Create force field
 force_field = ForceField()
@@ -78,69 +94,36 @@ while running:
         if event.type == pygame.QUIT:
             running = False
 
-    # Player 1 controls
-    keys = pygame.key.get_pressed()
-    if keys[pygame.K_w]:
-        if boxer1.rect.top > 0:  # Check if player is not at the top edge
-            boxer1.move(0, -boxer1.speed)
-    if keys[pygame.K_a]:
-        if boxer1.rect.left > force_field.rect.right:  # Check if player is not crossing the force field
-            boxer1.move(-boxer1.speed, 0)
-    if keys[pygame.K_d]:
-        if boxer1.rect.right < force_field.rect.left:  # Check if player is not crossing the force field
-            boxer1.move(boxer1.speed, 0)
-    if keys[pygame.K_s]:
-        if boxer1.rect.bottom < screen_height:  # Check if player is not at the bottom edge
-            boxer1.move(0, boxer1.speed)
-    if keys[pygame.K_SPACE]:
-        boxer1.is_punching = True
-    else:
-        boxer1.is_punching = False
-
-    # Player 2 controls
-    if keys[pygame.K_UP]:
-        if boxer2.rect.top > 0:  # Check if player is not at the top edge
-            boxer2.move(0, -boxer2.speed)
-    if keys[pygame.K_LEFT]:
-        if boxer2.rect.left > force_field.rect.right:  # Check if player is not crossing the force field
-            boxer2.move(-boxer2.speed, 0)
-    if keys[pygame.K_RIGHT]:
-        if boxer2.rect.right < force_field.rect.left:  # Check if player is not crossing the force field
-            boxer2.move(boxer2.speed, 0)
-    if keys[pygame.K_DOWN]:
-        if boxer2.rect.bottom < screen_height:  # Check if player is not at the bottom edge
-            boxer2.move(0, boxer2.speed)
-    if keys[pygame.K_RETURN]:
-        boxer2.is_punching = True
-    else:
-        boxer2.is_punching = False
+    # Player controls
+    for boxer in (boxer1, boxer2):
+        keys = pygame.key.get_pressed()
+        dx = (keys[boxer.keys["right"]] - keys[boxer.keys["left"]]) * boxer.speed
+        dy = (keys[boxer.keys["down"]] - keys[boxer.keys["up"]]) * boxer.speed
+        if dx or dy:
+            boxer.move(dx, dy)
+        if keys[boxer.keys["punch"]]:
+            boxer.is_punching = True
+        else:
+            boxer.is_punching = False
 
     # Check for punching
     boxer1.punch(boxer2)
     boxer2.punch(boxer1)
 
     # Update cooldown for punching
-    if boxer1.cooldown > 0:
-        boxer1.cooldown -= 1
-    if boxer2.cooldown > 0:
-        boxer2.cooldown -= 1
+    for boxer in (boxer1, boxer2):
+        if boxer.cooldown > 0:
+            boxer.cooldown -= 1
 
     # Update force field position based on players' positions
-    force_field.update_position((boxer1.rect.right + boxer2.rect.left) // 2)
+    force_field.rect.centerx = (boxer1.rect.right + boxer2.rect.left) // 2
 
     # Draw force field
     force_field.draw()
 
     # Draw boxers
-    boxer1.draw()
-    boxer2.draw()
-
-    # Display health and player names
-    font = pygame.font.Font(None, 36)
-    text1 = font.render(f"{boxer1.name}: {boxer1.health} HP", True, (255, 0, 0))
-    text2 = font.render(f"{boxer2.name}: {boxer2.health} HP", True, (0, 0, 255))
-    screen.blit(text1, (10, 10))
-    screen.blit(text2, (screen_width - 220, 10))
+    for boxer in (boxer1, boxer2):
+        boxer.draw()
 
     pygame.display.flip()
     clock.tick(30)
